@@ -17,7 +17,6 @@ import (
 	
 	"log"
 	"math"
-	"net/http"
 	
 	"sync"
 	"time"
@@ -35,6 +34,7 @@ import (
 
 type WorkRequest struct {
 	Send      models.Send  `json:"send"`
+	User 	models.User `json:"user"`
 }
 
 func (server *Server) GetParams(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +56,7 @@ func (server *Server) GetParams(w http.ResponseWriter, r *http.Request) {
 	}
 
 	send.Prepare()
-	err = send.Validate()
+	err := send.Validate()
 	if err != nil {
 		responses.ERROR(w, http.StatusUnprocessableEntity, err)
 		return

@@ -14,7 +14,7 @@ services:
       - 9000:9000
     volumes:
       - ./src:/golang-docker
-      - .env:/golang-docker/.env
+      # - .env:/golang-docker/.env
     depends_on:
       - redis
       - mysql
@@ -26,7 +26,7 @@ services:
     container_name: go
     volumes:
       - ./src:/golang-docker
-      - .env:/golang-docker/.env
+      # - .env:/golang-docker/.env
     working_dir: /golang-docker
     profiles: ["go"]
     entrypoint: ['go']
