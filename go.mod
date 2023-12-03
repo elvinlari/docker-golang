@@ -1,4 +1,4 @@
-module github.com/elvinlari/go-structure
+module github.com/elvinlari/docker-golang
 
 go 1.21.4
 

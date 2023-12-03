@@ -10,13 +10,13 @@ WORKDIR /go/src/github.com/elvinlari/docker-golang
 # RUN go get -u github.com/swaggo/http-swagger
 # RUN go get golang.org/x/crypto/ssh/terminal@v0.16.0
 
-RUN go mod init github.com/elvinlari/docker-golang
-RUN go get github.com/jmoiron/sqlx
-RUN go get github.com/pkg/errors
-RUN go get github.com/go-chi/chi
-RUN go get github.com/go-sql-driver/mysql
-RUN go get github.com/sirupsen/logrus
-RUN go get github.com/spf13/viper
+# RUN go mod init github.com/elvinlari/docker-golang
+# RUN go get github.com/jmoiron/sqlx
+# RUN go get github.com/pkg/errors
+# RUN go get github.com/go-chi/chi
+# RUN go get github.com/go-sql-driver/mysql
+# RUN go get github.com/sirupsen/logrus
+# RUN go get github.com/spf13/viper
 
 RUN apt-get update && \
     apt-get install -y vim && \
