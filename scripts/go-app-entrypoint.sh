@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-bash scripts/wait-for-it.sh go-app-db:3306
-main
+bash /etc/scripts/wait-for-it.sh go-app-db:3306
+/usr/bin/supervisord -c /etc/supervisor.conf

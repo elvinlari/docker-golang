@@ -1,37 +1,19 @@
 package servid
 
 import (
-	"flag"
-	"fmt"
 	"net/http"
 	"os"
 
-	"github.com/elvinlari/docker-golang/internal/platform/db"
-	"github.com/elvinlari/docker-golang/internal/todo"
-	"github.com/go-chi/chi"
-	"github.com/jmoiron/sqlx"
+	dtbase "github.com/elvinlari/docker-golang/internal/platform/db"
+	taskModel "github.com/elvinlari/docker-golang/internal/task/model"
+	taskHttp "github.com/elvinlari/docker-golang/internal/task/http"
+	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
-const (
-	defaultConfigFilePath  = "./configs"
-	configFilePathUsage    = "config file directory. Config file must be named 'conf_{env}.yml'."
-	configFilePathFlagName = "configFilePath"
-	envUsage               = "environment for app, prod, dev, test"
-	envDefault             = "prod"
-	envFlagname            = "env"
-)
-
-var configFilePath string
-var env string
 
 func config() {
 	logger()
-	flag.StringVar(&configFilePath, configFilePathFlagName, defaultConfigFilePath, configFilePathUsage)
-	flag.StringVar(&env, envFlagname, envDefault, envUsage)
-	flag.Parse()
-	configuration(configFilePath, env)
 }
 
 func logger() {
@@ -46,64 +28,51 @@ func logger() {
 // App Instance which contains router and db
 type App struct {
 	*http.Server
-	r  *chi.Mux
-	db *sqlx.DB
+	r  *gin.Engine
 }
 
 // NewApp creates new App with db connection pool
 func NewApp() *App {
 	config()
-	router := chi.NewRouter()
-	database := setupDB(viper.GetString("database.URL"))
 
-	// todo domain
-	todoStore := todo.NewTodoStore(database)
-	todoController := todo.NewTodoController(todoStore)
-	todo.AddTodoRoutes(router, todoController)
+	// gorm
+	db, err := dtbase.Connect()
+	if err != nil {
+		panic("failed to connect database")
+	}
+	dtbase.RunMigration(db)
+
+	// Set Gin mode to release
+    gin.SetMode(gin.ReleaseMode)
+	router := gin.New()
+
+	// task domain
+	tsDB := &taskModel.TaskService{DB: db}
+	tsHTTP := taskHttp.TaskService{
+		Service: tsDB,
+	}
+	taskHttp.RegisterRoutes(router, &tsHTTP)
 
 	showRoutes(router)
 
 	server := &App{
 		r:  router,
-		db: database,
 	}
 	return server
 }
 
 // Start launching the server
 func (a *App) Start() {
-	log.Fatal(http.ListenAndServe(viper.GetString("server.port"), a.r))
+	log.Fatal(http.ListenAndServe(os.Getenv("GO_PORT"), a.r))
 }
 
-func showRoutes(r *chi.Mux) {
-	log.Info("registered routes: ")
-	walkFunc := func(method string, route string, handler http.Handler, m ...func(http.Handler) http.Handler) error {
-		log.Infof("%s %s\n", method, route)
-		return nil
-	}
-	if err := chi.Walk(r, walkFunc); err != nil {
-		log.Infof("Logging err: %s\n", err.Error())
-	}
+func showRoutes(r *gin.Engine) {
+    log.Info("registered routes: ")
+    
+    // Iterate over registered routes
+    routes := r.Routes()
+    for _, route := range routes {
+        log.Infof("%s %s\n", route.Method, route.Path)
+    }
 }
 
-func configuration(path string, env string) {
-	if flag.Lookup("test.v") != nil {
-		env = "test"
-		path = "./../../configs"
-	}
-	log.Println("Environment is: " + env + " configFilePath is: " + path)
-	viper.SetConfigName("conf_" + env)
-	viper.AddConfigPath(path) // working directory
-	err := viper.ReadInConfig()
-	if err != nil {
-		log.Fatal(fmt.Errorf("fatal: %+v", err))
-	}
-}
-
-func setupDB(dbURL string) *sqlx.DB {
-	mysql, err := db.New(dbURL)
-	if err != nil {
-		log.Fatal(fmt.Errorf("fatal: %+v", err))
-	}
-	return mysql
-}
